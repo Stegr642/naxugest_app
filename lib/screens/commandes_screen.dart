@@ -1,231 +1,105 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final supabase = Supabase.instance.client;
-
 class CommandesScreen extends StatefulWidget {
-  const CommandesScreen({Key? key}) : super(key: key);
+  const CommandesScreen({super.key});
 
   @override
   State<CommandesScreen> createState() => _CommandesScreenState();
 }
 
 class _CommandesScreenState extends State<CommandesScreen> {
-  List<Map<String, dynamic>> _commandes = [];
-  List<Map<String, dynamic>> _chantiers = [];
-  List<Map<String, dynamic>> _chefs = [];
-
-  String? _searchQuery;
-  String? _editingCommandeId;
-  String? selectedChantier;
-  String? selectedChef;
-  List<Map<String, dynamic>> lignes = [];
+  final SupabaseClient supabase = Supabase.instance.client;
+  late Future<List<Map<String, dynamic>>> _commandesFuture;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchAll();
+    _commandesFuture = _fetchCommandes();
   }
 
-  Future<void> _fetchAll() async {
-    try {
-      final commandesData = await supabase
-          .from('commandes')
-          .select('*, chantier:chantier_id(nom), chef:chef_equipe_id(nom)')
-          .order('created_at', ascending: false);
-      final chantiersData = await supabase.from('chantiers').select();
-      final chefsData = await supabase.from('chefs_equipe').select();
-
-      setState(() {
-        _commandes = List<Map<String, dynamic>>.from(commandesData);
-        _chantiers = List<Map<String, dynamic>>.from(chantiersData);
-        _chefs = List<Map<String, dynamic>>.from(chefsData);
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la récupération : $e')),
-      );
-    }
+  Future<List<Map<String, dynamic>>> _fetchCommandes() async {
+    final response = await supabase
+        .from('commandes')
+        .select()
+        .order('created_at', ascending: false);
+    return (response as List).map((e) => e as Map<String, dynamic>).toList();
   }
 
-  List<Map<String, dynamic>> get filteredCommandes {
-    if (_searchQuery == null || _searchQuery!.isEmpty) return _commandes;
-    final q = _searchQuery!.toLowerCase();
-    return _commandes.where((c) {
-      final chantierNom = c['chantier']?['nom']?.toString().toLowerCase() ?? '';
-      final chefNom = c['chef']?['nom']?.toString().toLowerCase() ?? '';
-      return chantierNom.contains(q) || chefNom.contains(q);
-    }).toList();
-  }
-
-  void _deleteCommande(String id) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Supprimer la commande'),
-        content: const Text('Voulez-vous vraiment supprimer cette commande ?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await supabase.from('commandes').delete().eq('id', id);
-      setState(() {
-        _commandes.removeWhere((c) => c['id'] == id);
-      });
-    }
-  }
-
-  void _editCommande(Map<String, dynamic> commande) {
+  void _refresh() {
     setState(() {
-      _editingCommandeId = commande['id'];
-      selectedChantier = commande['chantier_id']?.toString();
-      selectedChef = commande['chef_equipe_id']?.toString();
-      lignes = List<Map<String, dynamic>>.from(commande['lignes'] ?? []);
+      _commandesFuture = _fetchCommandes();
     });
-    _showCommandeDialog();
   }
 
   void _addCommande() {
-    setState(() {
-      _editingCommandeId = null;
-      selectedChantier = null;
-      selectedChef = null;
-      lignes = [];
-    });
     _showCommandeDialog();
   }
 
-  Future<void> _showCommandeDialog() async {
-    final _formKey = GlobalKey<FormState>();
+  void _editCommande(Map<String, dynamic> commande) {
+    _showCommandeDialog(commande: commande);
+  }
+
+  Future<void> _deleteCommande(String id) async {
+    await supabase.from('commandes').delete().eq('id', id);
+    _refresh();
+  }
+
+  Future<void> _showCommandeDialog({Map<String, dynamic>? commande}) async {
+    final TextEditingController descriptionController =
+        TextEditingController(text: commande?['description'] ?? '');
+    final TextEditingController chantierController =
+        TextEditingController(text: commande?['chantier'] ?? '');
 
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(_editingCommandeId == null
-            ? 'Nouvelle commande'
-            : 'Modifier commande'),
-        content: StatefulBuilder(
-          builder: (context, setDialogState) => Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedChantier,
-                    decoration: const InputDecoration(labelText: 'Chantier'),
-                    items: _chantiers
-                        .map((c) => DropdownMenuItem(
-                              value: c['id'].toString(),
-                              child: Text(c['nom']),
-                            ))
-                        .toList(),
-                    onChanged: (v) =>
-                        setDialogState(() => selectedChantier = v),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Chantier requis' : null,
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: selectedChef,
-                    decoration:
-                        const InputDecoration(labelText: 'Chef d\'équipe'),
-                    items: _chefs
-                        .map((c) => DropdownMenuItem(
-                              value: c['id'].toString(),
-                              child: Text(c['nom']),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setDialogState(() => selectedChef = v),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Chef requis' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  // Lignes produits à compléter ici (bouton + liste)
-                  ElevatedButton(
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                    onPressed: () {
-                      // TODO: Ajouter ligne produit
-                    },
-                    child: const Text('Ajouter une ligne de produit'),
-                  ),
-                  const SizedBox(height: 12),
-                  if (lignes.isNotEmpty)
-                    ...lignes.map((l) => ListTile(
-                          title: Text('Produit: ${l['produit_nom'] ?? '-'}'),
-                          subtitle: Text('Quantité: ${l['quantite']}'),
-                        )),
-                ],
+        title:
+            Text(commande == null ? 'Nouvelle Commande' : 'Modifier Commande'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
               ),
             ),
-          ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: chantierController,
+              decoration: const InputDecoration(
+                labelText: 'Chantier',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler')),
+            child: const Text('Annuler'),
+            onPressed: () => Navigator.pop(context),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            child: Text(_editingCommandeId == null ? 'Ajouter' : 'Modifier'),
+            child: Text(commande == null ? 'Ajouter' : 'Mettre à jour'),
             onPressed: () async {
-              if (!_formKey.currentState!.validate()) return;
-              if (lignes.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text(
-                          'La commande doit contenir au moins un produit.')),
-                );
-                return;
-              }
-
-              final payload = {
-                'chantier_id': selectedChantier,
-                'chef_equipe_id': selectedChef,
-                'lignes': lignes
-                    .map((l) => {
-                          'produit_id': l['produit'],
-                          'quantite': l['quantite'],
-                        })
-                    .toList(),
-              };
-
-              try {
-                if (_editingCommandeId != null) {
-                  await supabase
-                      .from('commandes')
-                      .update(payload)
-                      .eq('id', _editingCommandeId!);
-                  final index = _commandes
-                      .indexWhere((c) => c['id'] == _editingCommandeId);
-                  if (index != -1)
-                    _commandes[index] = {..._commandes[index], ...payload};
-                } else {
-                  final inserted =
-                      await supabase.from('commandes').insert(payload).select();
-                  if (inserted.isNotEmpty) _commandes.add(inserted.first);
-                }
-
-                setState(() {
-                  _editingCommandeId = null;
-                  selectedChantier = null;
-                  selectedChef = null;
-                  lignes = [];
+              if (commande == null) {
+                await supabase.from('commandes').insert({
+                  'description': descriptionController.text,
+                  'chantier': chantierController.text,
                 });
-                Navigator.pop(context);
-              } catch (e) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Erreur : $e')));
+              } else {
+                await supabase.from('commandes').update({
+                  'description': descriptionController.text,
+                  'chantier': chantierController.text,
+                }).eq('id', commande['id']);
               }
+              if (context.mounted) Navigator.pop(context);
+              _refresh();
             },
           ),
         ],
@@ -233,26 +107,28 @@ class _CommandesScreenState extends State<CommandesScreen> {
     );
   }
 
-  Widget _buildRow(Map<String, dynamic> c) {
+  Widget buildRow(Map<String, dynamic> commande) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 3,
+      elevation: 2,
       child: ListTile(
         title: Text(
-          'Chantier: ${c['chantier']?['nom'] ?? '-'}',
+          commande['description'] ?? 'Commande',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text('Chef: ${c['chef']?['nom'] ?? '-'}'),
+        subtitle: Text("Chantier : ${commande['chantier'] ?? '-'}"),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blue),
-                onPressed: () => _editCommande(c)),
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _editCommande(commande),
+            ),
             IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => _deleteCommande(c['id'])),
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _deleteCommande(commande['id']),
+            ),
           ],
         ),
       ),
@@ -261,36 +137,149 @@ class _CommandesScreenState extends State<CommandesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isWide = MediaQuery.of(context).size.width > 600;
+
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          decoration: const InputDecoration(
-            hintText: 'Rechercher par chantier ou chef',
-            border: InputBorder.none,
-            hintStyle: TextStyle(color: Colors.white70),
-            prefixIcon: Icon(Icons.search, color: Colors.white),
+      backgroundColor: Colors.grey.shade100,
+      body: Column(
+        children: [
+          // Header moderne
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.teal, Colors.tealAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                )
+              ],
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 40, 16, 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Commandes',
+                  style: TextStyle(
+                    fontSize: 28,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orangeAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _addCommande,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Nouvelle'),
+                ),
+              ],
+            ),
           ),
-          style: const TextStyle(color: Colors.white),
-          onChanged: (v) => setState(() => _searchQuery = v),
-        ),
-        backgroundColor: Colors.teal,
-        actions: [
-          ElevatedButton.icon(
-            icon: const Icon(Icons.add),
-            label: const Text('Ajouter'),
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade400),
-            onPressed: _addCommande,
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Rechercher une commande...',
+                filled: true,
+                fillColor: Colors.white,
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
           ),
-          const SizedBox(width: 12),
+          // Liste
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _commandesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Erreur: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Aucune commande trouvée.'));
+                }
+
+                final commandesList = snapshot.data!
+                    .where((c) =>
+                        c['description']
+                            ?.toString()
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()) ??
+                        false)
+                    .toList();
+
+                if (isWide) {
+                  // Vue DataTable Desktop
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor:
+                          WidgetStateProperty.all(Colors.teal.shade200),
+                      headingTextStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                      columnSpacing: 24,
+                      horizontalMargin: 12,
+                      columns: const [
+                        DataColumn(label: Text('Description')),
+                        DataColumn(label: Text('Chantier')),
+                        DataColumn(label: Text('Actions')),
+                      ],
+                      rows: commandesList.map((c) {
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(c['description'] ?? '')),
+                            DataCell(Text(c['chantier'] ?? '-')),
+                            DataCell(Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blue),
+                                  onPressed: () => _editCommande(c),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  onPressed: () => _deleteCommande(c['id']),
+                                ),
+                              ],
+                            )),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  );
+                } else {
+                  // Vue Mobile ListView
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: commandesList.length,
+                    itemBuilder: (_, index) => buildRow(commandesList[index]),
+                  );
+                }
+              },
+            ),
+          ),
         ],
       ),
-      body: _commandes.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: filteredCommandes.length,
-              itemBuilder: (_, i) => _buildRow(filteredCommandes[i]),
-            ),
     );
   }
 }

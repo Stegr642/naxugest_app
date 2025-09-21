@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:naxugest_app/services/supabase_client_service.dart';
-import 'package:naxugest_app/screens/produits_screen.dart'; // ✅ très important
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/produits_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SupabaseClientService.init();
+  // Initialisation de Supabase avec dart-defines.json
+  await Supabase.initialize(
+    url: const String.fromEnvironment('SUPABASE_URL'),
+    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+    debug: true,
+  );
 
-  runApp(const MyApp());
+  runApp(const NaxuGestApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class NaxuGestApp extends StatelessWidget {
+  const NaxuGestApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NaxuGest',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        useMaterial3: true,
+        primarySwatch: Colors.teal,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const ProduitsScreen(), // ✅ ici
+      home: const ProduitsScreen(),
     );
   }
 }
