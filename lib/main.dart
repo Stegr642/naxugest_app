@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/produits_screen.dart';
+import 'screens/commandes_screen.dart';
+import 'screens/nouvelle_commande_screen.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialisation de Supabase avec dart-defines.json
+  // Lire les valeurs depuis dart-define
+  final supabaseUrl = const String.fromEnvironment('SUPABASE_URL');
+  final supabaseAnonKey = const String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+    throw Exception(
+        'Supabase URL ou ANON KEY manquant. Vérifie ton dart-defines.json');
+  }
+
   await Supabase.initialize(
-    url: const String.fromEnvironment('SUPABASE_URL'),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-    debug: true,
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
 
   runApp(const NaxuGestApp());
@@ -21,13 +29,14 @@ class NaxuGestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NaxuGest',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const ProduitsScreen(),
+      title: 'NaxuGest',
+      theme: ThemeData(primarySwatch: Colors.teal),
+      initialRoute: '/commandes',
+      routes: {
+        '/commandes': (_) => const CommandesScreen(),
+        '/nouvelle_commande': (_) => const NouvelleCommandeScreen(),
+      },
     );
   }
 }

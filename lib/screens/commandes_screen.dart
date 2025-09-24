@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+final supabase = Supabase.instance.client;
+
 class CommandesScreen extends StatefulWidget {
   const CommandesScreen({super.key});
 
@@ -9,277 +11,316 @@ class CommandesScreen extends StatefulWidget {
 }
 
 class _CommandesScreenState extends State<CommandesScreen> {
-  final SupabaseClient supabase = Supabase.instance.client;
-  late Future<List<Map<String, dynamic>>> _commandesFuture;
   String _searchQuery = '';
+  List<Map<String, dynamic>> _produits = [];
 
   @override
   void initState() {
     super.initState();
-    _commandesFuture = _fetchCommandes();
+    fetchProduits();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchCommandes() async {
-    final response = await supabase
-        .from('commandes')
-        .select()
-        .order('created_at', ascending: false);
-    return (response as List).map((e) => e as Map<String, dynamic>).toList();
-  }
-
-  void _refresh() {
+  Future<void> fetchProduits() async {
+    final data = await supabase.from('produits').select('*').order('nom');
     setState(() {
-      _commandesFuture = _fetchCommandes();
+      _produits = List<Map<String, dynamic>>.from(data as List);
     });
-  }
-
-  void _addCommande() {
-    _showCommandeDialog();
-  }
-
-  void _editCommande(Map<String, dynamic> commande) {
-    _showCommandeDialog(commande: commande);
-  }
-
-  Future<void> _deleteCommande(String id) async {
-    await supabase.from('commandes').delete().eq('id', id);
-    _refresh();
-  }
-
-  Future<void> _showCommandeDialog({Map<String, dynamic>? commande}) async {
-    final TextEditingController descriptionController =
-        TextEditingController(text: commande?['description'] ?? '');
-    final TextEditingController chantierController =
-        TextEditingController(text: commande?['chantier'] ?? '');
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title:
-            Text(commande == null ? 'Nouvelle Commande' : 'Modifier Commande'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: chantierController,
-              decoration: const InputDecoration(
-                labelText: 'Chantier',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Annuler'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            child: Text(commande == null ? 'Ajouter' : 'Mettre à jour'),
-            onPressed: () async {
-              if (commande == null) {
-                await supabase.from('commandes').insert({
-                  'description': descriptionController.text,
-                  'chantier': chantierController.text,
-                });
-              } else {
-                await supabase.from('commandes').update({
-                  'description': descriptionController.text,
-                  'chantier': chantierController.text,
-                }).eq('id', commande['id']);
-              }
-              if (context.mounted) Navigator.pop(context);
-              _refresh();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildRow(Map<String, dynamic> commande) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: ListTile(
-        title: Text(
-          commande['description'] ?? 'Commande',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text("Chantier : ${commande['chantier'] ?? '-'}"),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: () => _editCommande(commande),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteCommande(commande['id']),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isWide = MediaQuery.of(context).size.width > 600;
-
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       body: Column(
         children: [
-          // Header moderne
+          // Header moderne harmonisé avec ProduitsScreen
           Container(
-            decoration: const BoxDecoration(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.teal, Colors.tealAccent],
+                colors: [Colors.teal.shade700, Colors.teal.shade400],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black26,
+                  color: Colors.grey.shade400,
                   blurRadius: 8,
-                  offset: Offset(0, 4),
-                )
+                  offset: const Offset(0, 3),
+                ),
               ],
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(16, 40, 16, 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Commandes',
                   style: TextStyle(
-                    fontSize: 28,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold),
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orangeAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText: 'Rechercher une commande',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0, horizontal: 16),
+                        ),
+                        onChanged: (value) {
+                          setState(() => _searchQuery = value);
+                        },
+                      ),
                     ),
-                  ),
-                  onPressed: _addCommande,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Nouvelle'),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _showCommandeDialog(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ajouter'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orangeAccent,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 20),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Rechercher une commande...',
-                filled: true,
-                fillColor: Colors.white,
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onChanged: (value) => setState(() => _searchQuery = value),
-            ),
-          ),
-          // Liste
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _commandesFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Erreur: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Aucune commande trouvée.'));
-                }
-
-                final commandesList = snapshot.data!
-                    .where((c) =>
-                        c['description']
-                            ?.toString()
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()) ??
-                        false)
-                    .toList();
-
-                if (isWide) {
-                  // Vue DataTable Desktop
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      headingRowColor:
-                          WidgetStateProperty.all(Colors.teal.shade200),
-                      headingTextStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                      columnSpacing: 24,
-                      horizontalMargin: 12,
-                      columns: const [
-                        DataColumn(label: Text('Description')),
-                        DataColumn(label: Text('Chantier')),
-                        DataColumn(label: Text('Actions')),
-                      ],
-                      rows: commandesList.map((c) {
-                        return DataRow(
-                          cells: [
-                            DataCell(Text(c['description'] ?? '')),
-                            DataCell(Text(c['chantier'] ?? '-')),
-                            DataCell(Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.blue),
-                                  onPressed: () => _editCommande(c),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteCommande(c['id']),
-                                ),
-                              ],
-                            )),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  );
-                } else {
-                  // Vue Mobile ListView
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: commandesList.length,
-                    itemBuilder: (_, index) => buildRow(commandesList[index]),
-                  );
-                }
-              },
-            ),
-          ),
+          // TODO: liste des commandes
         ],
       ),
+    );
+  }
+
+  Future<void> _showCommandeDialog(BuildContext context) async {
+    String? selectedChantier;
+    String? selectedChef;
+
+    List<Map<String, dynamic>> produitsDisponibles = List.from(_produits);
+    List<Map<String, dynamic>> produitsSelectionnes = [];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            final screenHeight = MediaQuery.of(context).size.height;
+
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: Container(
+                width: screenWidth * 0.9,
+                height: screenHeight * 0.8,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Header dialog harmonisé
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 24, horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.teal.shade700, Colors.teal.shade400],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Nouvelle Commande',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 3,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Produits Disponibles",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: produitsDisponibles.length,
+                                      itemBuilder: (context, index) {
+                                        final produit =
+                                            produitsDisponibles[index];
+                                        return GestureDetector(
+                                          onDoubleTap: () {
+                                            setState(() {
+                                              if (!produitsSelectionnes.any(
+                                                  (p) =>
+                                                      p['id'] ==
+                                                      produit['id'])) {
+                                                produitsSelectionnes.add({
+                                                  ...produit,
+                                                  'quantite': 1,
+                                                });
+                                              }
+                                            });
+                                          },
+                                          child: ListTile(
+                                            title: Text(produit['nom']),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 3,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[200],
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Produits Sélectionnés",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: produitsSelectionnes.length,
+                                      itemBuilder: (context, index) {
+                                        final produit =
+                                            produitsSelectionnes[index];
+                                        return GestureDetector(
+                                          onDoubleTap: () {
+                                            setState(() {
+                                              produitsSelectionnes
+                                                  .removeAt(index);
+                                            });
+                                          },
+                                          child: ListTile(
+                                            title: Text(produit['nom']),
+                                            subtitle: Row(
+                                              children: [
+                                                const Text("Quantité: "),
+                                                SizedBox(
+                                                  width: 60,
+                                                  child: TextFormField(
+                                                    initialValue:
+                                                        produit['quantite']
+                                                            .toString(),
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    onChanged: (val) {
+                                                      setState(() {
+                                                        produit['quantite'] =
+                                                            int.tryParse(val) ??
+                                                                1;
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[400],
+                            foregroundColor: Colors.black,
+                          ),
+                          child: const Text('Annuler'),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                          ),
+                          child: const Text('Valider'),
+                          onPressed: () {
+                            // TODO: sauvegarder la commande
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

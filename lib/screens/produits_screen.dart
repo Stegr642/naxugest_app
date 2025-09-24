@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final supabase = Supabase.instance.client;
 
 class ProduitsScreen extends StatefulWidget {
-  const ProduitsScreen({Key? key}) : super(key: key);
+  const ProduitsScreen({super.key});
 
   @override
   State<ProduitsScreen> createState() => _ProduitsScreenState();
@@ -88,7 +88,7 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
   }
 
   Future<void> showProduitForm({Map<String, dynamic>? produit}) async {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     String nom = produit?['nom'] ?? '';
     String reference = produit?['reference'] ?? '';
     String unite = produit?['unite'] ?? _unitOptions.first;
@@ -104,7 +104,7 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
             produit == null ? 'Ajouter un produit' : 'Modifier le produit'),
         content: SingleChildScrollView(
           child: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -121,7 +121,7 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
                   onSaved: (value) => reference = value ?? '',
                 ),
                 DropdownButtonFormField<String>(
-                  value:
+                  initialValue:
                       _unitOptions.contains(unite) ? unite : _unitOptions.first,
                   decoration: const InputDecoration(labelText: 'Unité'),
                   items: _unitOptions
@@ -165,8 +165,8 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
             ),
             child: Text(produit == null ? 'Ajouter' : 'Modifier'),
             onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                _formKey.currentState!.save();
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
 
                 final payload = {
                   'nom': nom,
@@ -191,8 +191,9 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
                   setState(() {
                     final index =
                         _produits.indexWhere((p) => p['nom'] == produit['nom']);
-                    if (index != -1)
+                    if (index != -1) {
                       _produits[index] = {...produit, ...payload};
+                    }
                   });
                 }
 
@@ -377,7 +378,7 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
                       headingRowColor:
-                          MaterialStateProperty.all(Colors.teal.shade100),
+                          WidgetStateProperty.all(Colors.teal.shade100),
                       columns: const [
                         DataColumn(
                           label: Text(
@@ -452,7 +453,7 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
                           rowColor = Colors.white;
                         }
                         return DataRow(
-                          color: MaterialStateProperty.all(rowColor),
+                          color: WidgetStateProperty.all(rowColor),
                           cells: [
                             DataCell(Text(p['nom'].toString())),
                             DataCell(Text(p['reference']?.toString() ?? '-')),
