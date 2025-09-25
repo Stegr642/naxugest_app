@@ -1,30 +1,10 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:naxugest_app/providers/supabase_client_provider.dart';
+import '../models/chef.dart';
 
 class ChefsService {
-  final SupabaseClient client = Supabase.instance.client;
-
-  Future<List<Map<String, dynamic>>> fetchAll() async {
-    try {
-      final result = await client.from('chefs').select() as List<dynamic>;
-      return List<Map<String, dynamic>>.from(result);
-    } catch (e) {
-      throw Exception('Erreur lors de la récupération des chefs: $e');
-    }
-  }
-
-  Future<void> add(Map<String, dynamic> chef) async {
-    try {
-      await client.from('chefs').insert(chef);
-    } catch (e) {
-      throw Exception('Erreur lors de l’ajout du chef: $e');
-    }
-  }
-
-  Future<void> remove(int id) async {
-    try {
-      await client.from('chefs').delete().eq('id', id);
-    } catch (e) {
-      throw Exception('Erreur lors de la suppression du chef: $e');
-    }
+  static Future<List<Chef>> getAll() async {
+    final response = await supabase.from('chefs_equipe').select();
+    final data = response as List<dynamic>;
+    return data.map((c) => Chef.fromMap(c as Map<String, dynamic>)).toList();
   }
 }

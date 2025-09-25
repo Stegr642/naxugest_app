@@ -27,89 +27,6 @@ class _CommandesScreenState extends State<CommandesScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header moderne harmonisé avec ProduitsScreen
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.teal.shade700, Colors.teal.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade400,
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Commandes',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          hintText: 'Rechercher une commande',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 0, horizontal: 16),
-                        ),
-                        onChanged: (value) {
-                          setState(() => _searchQuery = value);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _showCommandeDialog(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Ajouter'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orangeAccent,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 20),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // TODO: liste des commandes
-        ],
-      ),
-    );
-  }
-
   Future<void> _showCommandeDialog(BuildContext context) async {
     String? selectedChantier;
     String? selectedChef;
@@ -134,11 +51,9 @@ class _CommandesScreenState extends State<CommandesScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Header dialog harmonisé
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 24, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.teal.shade700, Colors.teal.shade400],
@@ -321,6 +236,47 @@ class _CommandesScreenState extends State<CommandesScreen> {
           },
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Rechercher une commande',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Text(
+              'Liste des commandes ici (à implémenter)',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => _showCommandeDialog(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Nouvelle Commande'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orangeAccent,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
     );
   }
 }

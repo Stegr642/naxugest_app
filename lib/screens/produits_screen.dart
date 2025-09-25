@@ -121,7 +121,7 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
                   onSaved: (value) => reference = value ?? '',
                 ),
                 DropdownButtonFormField<String>(
-                  initialValue:
+                  value:
                       _unitOptions.contains(unite) ? unite : _unitOptions.first,
                   decoration: const InputDecoration(labelText: 'Unité'),
                   items: _unitOptions
@@ -225,12 +225,10 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
 
     return Card(
       color: rowColor,
-      elevation: 4,
-      shadowColor: Colors.grey.shade300,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         title: Row(
           children: [
             Expanded(
@@ -283,216 +281,110 @@ class _ProduitsScreenState extends State<ProduitsScreen> {
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width >= 700;
 
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header moderne
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.teal.shade700, Colors.teal.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Rechercher par nom ou référence',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade400,
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Produits',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          hintText: 'Rechercher par nom ou référence',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 0, horizontal: 16),
-                        ),
-                        onChanged: (value) =>
-                            setState(() => _searchQuery = value),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: _addProduit,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Ajouter'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orangeAccent,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 20),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
           ),
-          // Liste des produits
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _produitsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Erreur: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Aucun produit trouvé.'));
-                }
+        ),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _produitsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(child: Text('Erreur: ${snapshot.error}'));
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('Aucun produit trouvé.'));
+              }
 
-                final produitsList = filteredProduits;
+              final produitsList = filteredProduits;
 
-                if (isWide) {
-                  // Desktop → DataTable
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      headingRowColor:
-                          WidgetStateProperty.all(Colors.teal.shade100),
-                      columns: const [
-                        DataColumn(
-                          label: Text(
-                            'Nom',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Référence',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Unité',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Prix Unitaire',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Stock Disponible',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Actions',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ),
-                      ],
-                      rows: produitsList.map((p) {
-                        final stockDispo = p['stock_disponible'] ?? 0;
-                        final stockMin = p['stock_minimum'] ?? 0;
-                        Color rowColor;
-                        if (stockDispo <= 0) {
-                          rowColor = Colors.red.shade100;
-                        } else if (stockDispo <= stockMin) {
-                          rowColor = Colors.orange.shade100;
-                        } else {
-                          rowColor = Colors.white;
-                        }
-                        return DataRow(
-                          color: WidgetStateProperty.all(rowColor),
-                          cells: [
-                            DataCell(Text(p['nom'].toString())),
-                            DataCell(Text(p['reference']?.toString() ?? '-')),
-                            DataCell(Text(p['unite']?.toString() ?? '-')),
-                            DataCell(
-                                Text(p['prix_unitaire']?.toString() ?? '0')),
-                            DataCell(Text(stockDispo.toString())),
-                            DataCell(Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.blue),
-                                  onPressed: () => _editProduit(p),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteProduit(p['nom']),
-                                ),
-                              ],
-                            )),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  );
-                } else {
-                  // Mobile → ListView
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: produitsList.length,
-                    itemBuilder: (_, index) => buildRow(produitsList[index]),
-                  );
-                }
-              },
-            ),
+              if (isWide) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    headingRowColor:
+                        MaterialStateProperty.all(Colors.teal.shade100),
+                    columns: const [
+                      DataColumn(label: Text('Nom')),
+                      DataColumn(label: Text('Référence')),
+                      DataColumn(label: Text('Unité')),
+                      DataColumn(label: Text('Prix Unitaire')),
+                      DataColumn(label: Text('Stock Disponible')),
+                      DataColumn(label: Text('Actions')),
+                    ],
+                    rows: produitsList.map((p) {
+                      final stockDispo = p['stock_disponible'] ?? 0;
+                      final stockMin = p['stock_minimum'] ?? 0;
+                      Color rowColor;
+                      if (stockDispo <= 0) {
+                        rowColor = Colors.red.shade100;
+                      } else if (stockDispo <= stockMin) {
+                        rowColor = Colors.orange.shade100;
+                      } else {
+                        rowColor = Colors.white;
+                      }
+                      return DataRow(
+                        color: MaterialStateProperty.all(rowColor),
+                        cells: [
+                          DataCell(Text(p['nom'].toString())),
+                          DataCell(Text(p['reference']?.toString() ?? '-')),
+                          DataCell(Text(p['unite']?.toString() ?? '-')),
+                          DataCell(Text(p['prix_unitaire']?.toString() ?? '0')),
+                          DataCell(Text(stockDispo.toString())),
+                          DataCell(Row(
+                            children: [
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _editProduit(p),
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteProduit(p['nom']),
+                              ),
+                            ],
+                          )),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                );
+              } else {
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  itemCount: produitsList.length,
+                  itemBuilder: (_, index) => buildRow(produitsList[index]),
+                );
+              }
+            },
           ),
-        ],
-      ),
+        ),
+        ElevatedButton.icon(
+          onPressed: _addProduit,
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter Produit'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orangeAccent,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
     );
   }
 }

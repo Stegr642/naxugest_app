@@ -1,27 +1,27 @@
 class Product {
   final int id;
-  final String name;
-  final int quantity;
-  final double price; // obligatoire
+  final String nom;
+  final String description;
 
   Product({
     required this.id,
-    required this.name,
-    required this.quantity,
-    required this.price,
+    required this.nom,
+    required this.description,
   });
 
-  factory Product.fromMap(Map<String, dynamic> map) => Product(
-        id: map['id'],
-        name: map['name'],
-        quantity: map['quantity'],
-        price: map['price'].toDouble(),
-      );
+  factory Product.fromMap(Map<String, dynamic> map) {
+    return Product(
+      id: map['id'],
+      nom: map['nom'],
+      description: map['description'] ?? '',
+    );
+  }
 
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'quantity': quantity,
-        'price': price,
-      };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'nom': nom,
+      'description': description,
+    };
+  }
 }

@@ -1,30 +1,12 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:naxugest_app/providers/supabase_client_provider.dart';
+import '../models/chantier.dart';
 
 class ChantiersService {
-  final SupabaseClient client = Supabase.instance.client;
-
-  Future<List<Map<String, dynamic>>> fetchAll() async {
-    try {
-      final result = await client.from('chantiers').select() as List<dynamic>;
-      return List<Map<String, dynamic>>.from(result);
-    } catch (e) {
-      throw Exception('Erreur lors de la récupération des chantiers: $e');
-    }
-  }
-
-  Future<void> add(Map<String, dynamic> chantier) async {
-    try {
-      await client.from('chantiers').insert(chantier);
-    } catch (e) {
-      throw Exception('Erreur lors de l’ajout du chantier: $e');
-    }
-  }
-
-  Future<void> remove(int id) async {
-    try {
-      await client.from('chantiers').delete().eq('id', id);
-    } catch (e) {
-      throw Exception('Erreur lors de la suppression du chantier: $e');
-    }
+  static Future<List<Chantier>> getAll() async {
+    final response = await supabase.from('chantiers').select();
+    final data = response as List<dynamic>;
+    return data
+        .map((c) => Chantier.fromMap(c as Map<String, dynamic>))
+        .toList();
   }
 }

@@ -3,21 +3,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabase = Supabase.instance.client;
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class ResetPasswordScreen extends StatefulWidget {
+  const ResetPasswordScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   String _email = '';
-  String _password = '';
   bool _isLoading = false;
   String? _errorMessage;
 
-  Future<void> _login() async {
+  Future<void> _resetPassword() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
     _formKey.currentState!.save();
@@ -27,53 +27,22 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final response = await supabase.auth.signInWithPassword(
-        email: _email,
-        password: _password,
-      );
-
-      if (response.session != null) {
-        // Login réussi → redirection vers HomeScreen
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        setState(() {
-          _errorMessage = 'Email ou mot de passe incorrect';
-        });
-      }
-    } on AuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erreur inconnue. Veuillez réessayer.';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _resetPassword() async {
-    if (_email.isEmpty) {
-      setState(() {
-        _errorMessage =
-            'Veuillez entrer votre email pour réinitialiser le mot de passe.';
-      });
-      return;
-    }
-    try {
       await supabase.auth.resetPasswordForEmail(_email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email de réinitialisation envoyé.')),
+        const SnackBar(
+          content: Text('Email de réinitialisation envoyé.'),
+          backgroundColor: Colors.green,
+        ),
       );
+      Navigator.pop(context); // Retour au login après succès
     } catch (e) {
       setState(() {
         _errorMessage = 'Impossible d’envoyer l’email de réinitialisation.';
       });
+      debugPrint('Reset password error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -86,16 +55,15 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.electrical_services,
-                  size: 80, color: Colors.teal),
+              const Icon(Icons.lock_reset, size: 80, color: Colors.teal),
               const SizedBox(height: 16),
               const Text(
-                'Naxu Gest',
+                'Réinitialiser le mot de passe',
                 style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
               Form(
@@ -114,19 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? 'Email invalide'
                               : null,
                       onSaved: (value) => _email = value!.trim(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Mot de passe',
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
-                      validator: (value) => value == null || value.length < 6
-                          ? 'Mot de passe trop court'
-                          : null,
-                      onSaved: (value) => _password = value!.trim(),
+                      onChanged: (value) {
+                        setState(() => _errorMessage = null);
+                      },
                     ),
                     const SizedBox(height: 16),
                     if (_errorMessage != null)
@@ -140,25 +98,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
+                        onPressed: _isLoading ? null : _resetPassword,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text('Se connecter',
-                                style: TextStyle(fontSize: 18)),
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                            : const Text(
+                                'Envoyer email',
+                                style: TextStyle(fontSize: 18),
+                              ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _isLoading ? null : _resetPassword,
-                      child: const Text('Mot de passe oublié ?'),
                     ),
                   ],
                 ),
