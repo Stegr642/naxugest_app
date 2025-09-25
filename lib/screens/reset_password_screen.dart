@@ -11,121 +11,77 @@ class ResetPasswordScreen extends StatefulWidget {
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
-  String _email = '';
+  final _emailController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
+  String? _message;
 
-  Future<void> _resetPassword() async {
-    FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _sendResetEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _message = 'Email invalide.');
+      return;
+    }
 
-    _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _message = null;
     });
 
     try {
-      await supabase.auth.resetPasswordForEmail(_email);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email de réinitialisation envoyé.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context); // Retour au login après succès
+      await supabase.auth.resetPasswordForEmail(email);
+      setState(() => _message = 'Email de réinitialisation envoyé.');
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Impossible d’envoyer l’email de réinitialisation.';
-      });
-      debugPrint('Reset password error: $e');
+      setState(() => _message = 'Impossible d’envoyer l’email.');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_reset, size: 80, color: Colors.teal),
-              const SizedBox(height: 16),
-              const Text(
-                'Réinitialiser le mot de passe',
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal),
-                textAlign: TextAlign.center,
+      appBar: AppBar(
+        title: const Text('Réinitialiser le mot de passe'),
+        backgroundColor: Colors.teal,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 32),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) =>
-                          value == null || !value.contains('@')
-                              ? 'Email invalide'
-                              : null,
-                      onSaved: (value) => _email = value!.trim(),
-                      onChanged: (value) {
-                        setState(() => _errorMessage = null);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    if (_errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _resetPassword,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                ),
-                              )
-                            : const Text(
-                                'Envoyer email',
-                                style: TextStyle(fontSize: 18),
-                              ),
-                      ),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 16),
+            if (_message != null)
+              Text(_message!,
+                  style: TextStyle(
+                      color: _message!.contains('envoyé')
+                          ? Colors.green
+                          : Colors.red)),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _sendResetEmail,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Envoyer email',
+                        style: TextStyle(fontSize: 16)),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -33,9 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.session != null) {
-        // Login réussi → redirection vers HomeScreen
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
       } else {
         setState(() {
           _errorMessage = 'Email ou mot de passe incorrect';
@@ -92,10 +89,9 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Naxu Gest',
                 style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal),
               ),
               const SizedBox(height: 32),
               Form(
@@ -157,7 +153,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextButton(
-                      onPressed: _isLoading ? null : _resetPassword,
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.pushNamed(context, '/reset_password');
+                            },
                       child: const Text('Mot de passe oublié ?'),
                     ),
                   ],

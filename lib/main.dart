@@ -1,77 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
-import 'screens/produits_screen.dart';
-import 'screens/commandes_screen.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Récupération des defines
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
   await Supabase.initialize(
-    url: const String.fromEnvironment('SUPABASE_URL'),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
 
-  runApp(const NaxuGestApp());
+  runApp(const MyApp());
 }
 
-class NaxuGestApp extends StatelessWidget {
-  const NaxuGestApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NaxuGest',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-      ),
-      home: const AuthCheck(),
-      routes: {
-        '/login': (_) => const LoginScreen(),
-        '/home': (_) => const HomeScreen(),
-        '/produits': (_) => const ProduitsScreen(),
-        '/commandes': (_) => const CommandesScreen(),
-      },
+      theme: ThemeData(primarySwatch: Colors.teal),
+      home: const AuthWrapper(),
     );
   }
 }
 
-// Vérifie si l'utilisateur est connecté
-class AuthCheck extends StatefulWidget {
-  const AuthCheck({super.key});
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
 
   @override
-  State<AuthCheck> createState() => _AuthCheckState();
+  State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _AuthCheckState extends State<AuthCheck> {
-  bool _loading = true;
-  bool _loggedIn = false;
+class _AuthWrapperState extends State<AuthWrapper> {
+  final supabase = Supabase.instance.client;
+  late final Stream<AuthState> _authStateStream;
 
   @override
   void initState() {
     super.initState();
-    _checkAuth();
-  }
-
-  Future<void> _checkAuth() async {
-    final session = Supabase.instance.client.auth.currentSession;
-    setState(() {
-      _loggedIn = session != null;
-      _loading = false;
-    });
+    _authStateStream = supabase.auth.onAuthStateChange;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return _loggedIn ? const HomeScreen() : const LoginScreen();
+    return StreamBuilder<AuthState>(
+      stream: _authStateStream,
+      builder: (context, snapshot) {
+        final session = supabase.auth.currentSession;
+        if (session != null) {
+          return const HomeScreen();
+        } else {
+          return const LoginScreen();
+        }
+      },
+    );
   }
 }
