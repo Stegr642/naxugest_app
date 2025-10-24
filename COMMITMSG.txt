@@ -1,0 +1,21 @@
+chore(repo): première sauvegarde GitHub — NaxuGest (Produits + backups Supabase)
+
+Flutter — Liste Produits
+- Recherche serveur (désignation/catégorie) avec debounce 300 ms et curseur conservé
+- Pagination serveur (pageSize=50) + boutons Précédent/Suivant
+- AppBar plus pro + bouton “Nouveau produit” intégré à la barre de recherche
+- Colonnes: Code, Désignation, Unité, Catégorie, Qté Stock, Prix U., Actions (ID masqué, Qté Min masquée)
+- Suppression avec confirmation (RPC: produits_delete)
+- Entête figée (sticky), double scroll, anti-overflow ; libellés parfaitement alignés
+- Mise en couleur des lignes en alerte (Qté Stock < Qté Min) + filtre “Alerte produit(s)”
+- Format MAD (DH) pour les prix ; affichage complet du code produit (chiffres après les 10 lettres)
+
+SQL / Supabase
+- Champ de recherche côté DB: search_concat (pour ILIKE robuste)
+- Nettoyage: suppression des références à is_alert dans la vue produits
+- Backups réalisés: db_full.sql (schéma + données), db_data.sql, db_roles.sql (datés)
+- Scripts PowerShell de sauvegarde: base OK (Storage via rclone à compléter si buckets)
+
+Repo
+- .gitignore Flutter/Supabase/Secrets
+- README initial

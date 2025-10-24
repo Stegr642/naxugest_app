@@ -1,0 +1,34 @@
+# Flutter / Dart
+.dart_tool/
+.buildlog/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.melos_tool/
+.melos_packages/
+.idea/
+.vscode/
+android/.gradle/
+android/app/release/
+build/
+ios/Pods/
+macos/Pods/
+linux/build/
+windows/build/
+web/.dart_tool/
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Secrets usuels
+.env
+*.env
+*.env.*
+
+# Backups: ignorer les ZIP volumineux mais garder les .sql
+backups/**/*.zip
+
+# OS cruft
+.DS_Store
+Thumbs.db
