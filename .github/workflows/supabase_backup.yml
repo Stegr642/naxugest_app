@@ -1,0 +1,60 @@
+name: Supabase Backups
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_storage:
+        description: "Backup Storage buckets (true/false)"
+        required: false
+        default: "false"
+  schedule:
+    - cron: '30 23 * * 0'  # chaque dimanche 23:30 UTC
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Dump database (full + data-only + roles)
+        run: |
+          STAMP=$(date +'%Y%m%d_%H%M')
+          OUT="backups/$STAMP"
+          mkdir -p "$OUT"
+          # FULL (schema + data)
+          supabase db dump --schema auth,public,storage --file "$OUT/db_full.sql" --linked
+          # DATA only
+          supabase db dump --schema auth,public,storage --data-only --file "$OUT/db_data.sql" --linked --use-copy
+          # ROLES only
+          supabase db dump --role-only --file "$OUT/db_roles.sql" --linked
+          echo "OUT_DIR=$OUT" >> $GITHUB_ENV
+
+      - name: (Optional) Backup Storage buckets with rclone
+        if: ${{ github.event.inputs.include_storage == 'true' && secrets.SUPABASE_S3_ACCESS_KEY_ID && secrets.SUPABASE_S3_SECRET_ACCESS_KEY }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET_ACCESS_KEY }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y rclone
+          rclone config create naxustore s3 provider "Other" env_auth true endpoint "https://${REF}.supabase.co/storage/v1/s3" force_path_style true
+          mkdir -p "$OUT_DIR/storage"
+          rclone copy naxustore: "$OUT_DIR/storage" --fast-list || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase_backup_${{ github.run_id }}
+          path: ${{ env.OUT_DIR }}
+          retention-days: 30
